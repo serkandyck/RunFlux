@@ -15,6 +15,13 @@ cd ai-toolkit
 git submodule update --init --recursive
 pip install accelerate transformers diffusers huggingface_hub torchvision safetensors lycoris-lora==1.8.3 flatten_json pyyaml oyaml tensorboard kornia invisible-watermark einops toml albumentations pydantic omegaconf k-diffusion open_clip_torch timm prodigyopt controlnet_aux==0.0.7 python-dotenv bitsandbytes hf_transfer lpips pytorch_fid optimum-quanto sentencepiece 
 
+# Download YAML config on env variable
+wget -O config/ai-toolkit_config.yaml $YAML_CONFIG
+
+# Extract HUGGINGFACE_TOKEN from YAML and export it
+export HUGGINGFACE_TOKEN=$(yq eval '.config.process[0].HUGGINGFACE_TOKEN' config/ai-toolkit_config.yaml)
+export HF_REPO=$(yq eval '.config.process[0].HF_REPO' config/ai-toolkit_config.yaml)
+
 ## LOGIN HF
 huggingface-cli login --token $HUGGINGFACE_TOKEN --add-to-git-credential
 
@@ -24,18 +31,21 @@ cd /workspace/ai-toolkit
 # Create images directory
 mkdir -p images
 
-# Download images from URLs provided in IMAGE_URLS environment variable
-IFS=';' read -ra IMAGE_URLS_ARRAY <<< "$IMAGE_URLS"
+# Extract image URLs from YAML and download images
+image_urls=$(yq eval '.config.image_urls[]' config/ai-toolkit_config.yaml)
 
-for url in "${IMAGE_URLS_ARRAY[@]}"; do
-  wget -P images "$url"
+index=1
+for url in $image_urls; do
+    wget -O "images/${index}.jpg" "$url"
+    echo "Downloaded image $index: $url"
+    ((index++))
 done
 
 # Write ai-toolkit config with params passed from Colab notebook
 export FOLDER_PATH="/workspace/ai-toolkit/images"
 export MODEL_NAME="black-forest-labs/FLUX.1-dev"
 
-cp config/examples/train_lora_flux_24gb.yaml config/
+# cp config/examples/train_lora_flux_24gb.yaml config/
 
 declare -A yaml_params=(
   [config.process[0].network.linear]=LORA_RANK
@@ -53,11 +63,11 @@ declare -A yaml_params=(
 )
 
 for param in "${!yaml_params[@]}"; do
-  yq eval ".${param} = env(${yaml_params[$param]})" config/train_lora_flux_24gb.yaml > config/temp.yaml && mv config/temp.yaml config/train_lora_flux_24gb.yaml
+  yq eval ".${param} = env(${yaml_params[$param]})" config/ai-toolkit_config.yaml > config/temp.yaml && mv config/temp.yaml config/ai-toolkit_config.yaml
 done
 
 # upload config
-huggingface-cli upload $HF_REPO config/train_lora_flux_24gb.yaml
+huggingface-cli upload $HF_REPO config/ai-toolkit_config.yaml
 
 ## SCHEDULE UPLOADS of samples/adapters every 3 mins 
 mkdir -p output/my_first_flux_lora_v1/samples
@@ -70,7 +80,7 @@ huggingface-cli upload $HF_REPO ai-toolkit.log --every=3 &
 bash -c 'while true; do huggingface-cli upload $HF_REPO output/my_first_flux_lora_v1/samples samples; sleep 120; done' &
 
 ## TRAIN
-python run.py config/train_lora_flux_24gb.yaml 2>&1 | tee ai-toolkit.log
+python run.py config/ai-toolkit_config.yaml 2>&1 | tee ai-toolkit.log
 
 ## UPLOAD RESULTS one last time
 huggingface-cli upload $HF_REPO output/my_first_flux_lora_v1/samples samples
@@ -79,4 +89,3 @@ huggingface-cli upload $HF_REPO ai-toolkit.log
 
 # sleep infinity
 runpodctl remove pod $RUNPOD_POD_ID
-
