@@ -18,6 +18,8 @@ pip install accelerate transformers diffusers huggingface_hub torchvision safete
 # Download YAML config on env variable
 wget -O config/ai-toolkit_config.yaml $YAML_CONFIG
 
+echo "$YAML_CONFIG"
+
 # Extract HUGGINGFACE_TOKEN from YAML and export it
 export HUGGINGFACE_TOKEN=$(yq eval '.config.process[0].HUGGINGFACE_TOKEN' config/ai-toolkit_config.yaml)
 export HF_REPO=$(yq eval '.config.process[0].HF_REPO' config/ai-toolkit_config.yaml)
