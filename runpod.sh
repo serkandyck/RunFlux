@@ -24,8 +24,8 @@ echo "##########################################################################
 
 
 # Extract HUGGINGFACE_TOKEN from YAML and export it
-export HUGGINGFACE_TOKEN=$(yq eval '.config.process[0].HUGGINGFACE_TOKEN' config/ai-toolkit_config.yaml)
-export HF_REPO=$(yq eval '.config.process[0].HF_REPO' config/ai-toolkit_config.yaml)
+export HUGGINGFACE_TOKEN=$(yq eval '.config.HUGGINGFACE_TOKEN' config/ai-toolkit_config.yaml)
+export HF_REPO=$(yq eval '.config.HF_REPO' config/ai-toolkit_config.yaml)
 
 echo "##########################HUGGINGFACE_TOKEN###########################################"
 echo "$HUGGINGFACE_TOKEN"
