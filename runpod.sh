@@ -66,8 +66,18 @@ for param in "${!yaml_params[@]}"; do
   yq eval ".${param} = env(${yaml_params[$param]})" config/ai-toolkit_config.yaml > config/temp.yaml && mv config/temp.yaml config/ai-toolkit_config.yaml
 done
 
+# array vars
+IFS=';' read -ra SAMPLE_PROMPTS_ARRAY <<< "$SAMPLE_PROMPTS"
+
+for prompt in "${SAMPLE_PROMPTS_ARRAY[@]}"; do
+  echo PROMPT: $prompt
+  yq eval -i ".config.process[0].sample.prompts += \"$prompt\"" config/ai-toolkit_config.yaml 
+done
+
+yq eval -i 'del(.config.process[0].sample.prompts[0])' config/ai-toolkit_config.yaml
+
 # upload config
-huggingface-cli upload $HF_REPO config/ai-toolkit_config.yaml
+# huggingface-cli upload $HF_REPO config/ai-toolkit_config.yaml
 
 ## SCHEDULE UPLOADS of samples/adapters every 3 mins 
 mkdir -p output/my_first_flux_lora_v1/samples
