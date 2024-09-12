@@ -34,20 +34,25 @@ mkdir -p "$download_dir"
 # String'i URL'lere ayır ve bir diziye kaydet
 IFS=' ' read -ra urls <<< "$url_string"
 
+# Benzersiz dosya adı için sayaç
+counter=1
+
 # Her URL için döngü
 for url in "${urls[@]}"; do
-  # URL'den dosya adını çıkar
-  filename=$(basename "$url")
+  # Benzersiz bir dosya adı oluştur
+  filename="${counter}.jpg"
   
   # Dosyayı indir
   echo "İndiriliyor: $url"
-  curl -s -o "$download_dir/$filename" "$url"
+  curl -L -s -o "$download_dir/$filename" "$url"
   
   # İndirme başarılı mı kontrol et
   if [ $? -eq 0 ]; then
     echo "Başarıyla indirildi: $filename"
+    # Sayacı artır
+    ((counter++))
   else
-    echo "İndirme başarısız: $filename"
+    echo "İndirme başarısız: $url"
   fi
 done
 
